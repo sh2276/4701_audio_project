@@ -1,0 +1,54 @@
+# Whisper Transcription App
+
+A simple web application for transcribing audio using OpenAI's Whisper model.
+
+## Prerequisites
+
+- Python 3.7+
+- FFmpeg
+
+## Quick Setup
+
+### 1. Install FFmpeg
+
+#### Windows:
+- Download from [ffmpeg.org](https://ffmpeg.org/download.html)
+- Add to PATH
+
+#### macOS:
+```bash
+brew install ffmpeg
+```
+
+#### Ubuntu/Debian:
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+### 2. Set up Python environment
+
+```bash
+# Create a virtual environment
+python -m venv venv
+
+# Activate the virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+# Install required packages using requirements.txt
+pip install -r requirements.txt
+```
+
+### 3. Run the application
+
+```bash
+# Start the backend (in the activated venv)
+python app.py
+```
+
+Then simply open `index.html` in your web browser.
+
+Note: Make sure the port in your JavaScript file matches the port in your Flask app (8000).

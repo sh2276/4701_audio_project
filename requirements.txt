@@ -1,0 +1,4 @@
+flask
+flask-cors
+torch
+git+https://github.com/openai/whisper.git

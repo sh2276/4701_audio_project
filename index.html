@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Transcription with Whisper</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #0ea5e9;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary);
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            border-bottom: 2px solid var(--primary);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background-color: #f8fafc;
+        }
+
+        .upload-area i {
+            font-size: 48px;
+            color: #94a3b8;
+            margin-bottom: 10px;
+        }
+
+        .upload-area p {
+            color: #64748b;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .audio-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            gap: 8px;
+        }
+
+        .control-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .control-btn:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .control-btn.secondary {
+            background-color: white;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .control-btn.secondary:hover {
+            background-color: #f8fafc;
+        }
+
+        .control-btn.stop {
+            background-color: var(--error);
+        }
+
+        .control-btn.stop:hover {
+            background-color: #dc2626;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .status.recording {
+            background-color: #fee2e2;
+            color: var(--error);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .status.recording .pulse {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--error);
+            animation: pulse 1.5s infinite;
+        }
+
+        .status.processing {
+            background-color: #fef3c7;
+            color: var(--warning);
+            display: block;
+        }
+
+        .status.success {
+            background-color: #dcfce7;
+            color: var(--success);
+            display: block;
+        }
+
+        .status.error {
+            background-color: #fee2e2;
+            color: var(--error);
+            display: block;
+        }
+
+        .transcript-container {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #f8fafc;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .transcript-container h3 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .transcript-text {
+            white-space: pre-wrap;
+            line-height: 1.8;
+        }
+
+        .export-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .timer {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin: 15px 0;
+        }
+
+        .audio-visualization {
+            width: 100%;
+            height: 60px;
+            background-color: #f1f5f9;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .visualizer-bars {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            padding: 0 10px;
+        }
+
+        .visualizer-bar {
+            width: 4px;
+            background-color: var(--primary);
+            border-radius: 2px;
+            height: 50%;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .recorded-clips {
+            margin-top: 20px;
+        }
+
+        .clip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .clip-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .clip-controls button {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--primary);
+            padding: 5px;
+        }
+
+        .file-name {
+            margin-top: 10px;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        /* Added styles for loading indicators */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Audio Transcription with Whisper</h1>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="record">Record Audio</div>
+            <div class="tab" data-tab="upload">Upload Audio</div>
+        </div>
+
+        <div class="tab-content active" id="record-tab">
+            <div class="audio-visualization">
+                <div class="visualizer-bars" id="visualizer">
+                    <!-- Bars will be added dynamically with JS -->
+                </div>
+            </div>
+
+            <div class="timer" id="recording-timer">00:00</div>
+
+            <div class="audio-controls">
+                <button id="record-btn" class="control-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M10 8a2 2 0 1 1-4 0V3a2 2 0 1 1 4 0v5zM8 0a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V3a3 3 0 0 0-3-3z"/>
+                    </svg>
+                    Start Recording
+                </button>
+                <button id="stop-btn" class="control-btn stop" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>
+                    </svg>
+                    Stop Recording
+                </button>
+                <button id="transcribe-audio-btn" class="control-btn secondary" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M5 3a3 3 0 0 0-3 3v4a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zm-.5 7a.5.5 0 0 1-1 0V6a.5.5 0 0 1 1 0v4zm2.5-.5a.5.5 0 0 1-1 0V6a.5.5 0 0 1 1 0v3.5zm2.5.5a.5.5 0 0 1-1 0V6a.5.5 0 0 1 1 0v4zm2.5-.5a.5.5 0 0 1-1 0V6a.5.5 0 0 1 1 0v3.5z"/>
+                    </svg>
+                    Transcribe Audio
+                </button>
+            </div>
+
+            <div class="status recording">
+                <div class="pulse"></div>
+                Recording in progress...
+            </div>
+
+            <div class="recorded-clips" id="clips-container">
+                <!-- Recorded clips will appear here -->
+            </div>
+        </div>
+
+        <div class="tab-content" id="upload-tab">
+            <div class="upload-area" id="upload-area">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#94a3b8" viewBox="0 0 16 16">
+                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                    <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                </svg>
+                <p>Drag and drop audio files here or click to browse</p>
+                <input type="file" id="file-input" accept="audio/*" />
+                <div class="file-name" id="file-name"></div>
+            </div>
+
+            <button id="transcribe-file-btn" class="control-btn secondary" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M11.434 4H4.566L4.5 5.994h.386c.21-1.252.612-1.446 2.173-1.495l.343-.011v6.343c0 .537-.116.665-1.049.748V12h3.294v-.421c-.938-.083-1.054-.21-1.054-.748V4.488l.348.01c1.56.05 1.963.244 2.173 1.496h.386L11.434 4z"/>
+                </svg>
+                Transcribe File
+            </button>
+        </div>
+
+        <div class="status processing">
+            <div class="loading"></div>
+            Processing your audio...
+        </div>
+        <div class="status success">Transcription completed successfully!</div>
+        <div class="status error">An error occurred during transcription. Please try again.</div>
+
+        <div class="transcript-container">
+            <h3>Transcription Result</h3>
+            <div class="transcript-text" id="transcript"></div>
+        </div>
+
+        <div class="export-actions">
+            <button id="copy-btn" class="control-btn secondary" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                </svg>
+                Copy to Clipboard
+            </button>
+            <button id="download-btn" class="control-btn secondary" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                </svg>
+                Download Text
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
