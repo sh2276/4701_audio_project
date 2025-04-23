@@ -38,8 +38,9 @@ venv\Scripts\activate
 # On macOS/Linux:
 source venv/bin/activate
 
-# Install required packages using requirements.txt
+# Install required packages using requirements.txt and extra pip command
 pip install -r requirements.txt
+pip install piper-tts --no-deps piper-phonemize-cross onnxruntime numpy
 ```
 
 ### 3. Run the application
