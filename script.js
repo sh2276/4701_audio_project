@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const recordingTimer = document.getElementById('recording-timer');
     const visualizer = document.getElementById('visualizer');
     const clipsContainer = document.getElementById('clips-container');
+    const speakingAnimation = document.getElementById('speaking-animation');
 
     // App State
     let mediaRecorder;
@@ -36,18 +37,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let analyser;
     let visualizationStarted = false;
     let currentAudioSource = null; // Either 'recording' or 'file'
+    let isRecording = false;
 
     // Tab switching
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            
+
             const tabName = tab.getAttribute('data-tab');
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
             });
-            
+
             document.getElementById(`${tabName}-tab`).classList.add('active');
         });
     });
@@ -69,31 +71,31 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateVisualizer(analyser) {
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         const bars = document.querySelectorAll('.visualizer-bar');
-        
+
         function draw() {
             if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
-            
+
             analyser.getByteFrequencyData(dataArray);
-            
+
             // Get average levels for each bar
             const step = Math.floor(dataArray.length / bars.length);
-            
+
             bars.forEach((bar, index) => {
                 const start = index * step;
                 let sum = 0;
-                
+
                 for (let i = 0; i < step; i++) {
                     sum += dataArray[start + i];
                 }
-                
+
                 const average = sum / step;
                 const height = Math.max(3, (average / 255) * 100);
                 bar.style.height = `${height}%`;
             });
-            
+
             requestAnimationFrame(draw);
         }
-        
+
         requestAnimationFrame(draw);
     }
 
@@ -116,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         processingStatus.style.display = 'none';
         successStatus.style.display = 'none';
         errorStatus.style.display = 'none';
+        speakingAnimation.classList.remove('active');
     }
 
     // Reset the audio recording interface
@@ -125,7 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
         recordingStatus.style.display = 'none';
         recordingTimer.textContent = '00:00';
         recordingDuration = 0;
-        
+        isRecording = false;
+        speakingAnimation.classList.remove('active');
+
         // Reset visualizer bars
         const bars = document.querySelectorAll('.visualizer-bar');
         bars.forEach(bar => {
@@ -137,49 +142,49 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initializeRecording() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
+
             // Set up audio context for visualization
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioContext.createAnalyser();
             const source = audioContext.createMediaStreamSource(stream);
             source.connect(analyser);
             analyser.fftSize = 256;
-            
+
             setupVisualizer();
             updateVisualizer(analyser);
-            
+
             mediaRecorder = new MediaRecorder(stream);
-            
+
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) {
                     audioChunks.push(event.data);
                 }
             };
-            
+
             mediaRecorder.onstop = () => {
                 // Create audio blob and URL
                 audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
                 audioURL = URL.createObjectURL(audioBlob);
-                
+
                 // Stop timer
                 clearInterval(recordingTimerId);
-                
+
                 // Update UI
                 resetRecordingInterface();
-                
+
                 // Create audio element to play back recording
                 createAudioClip(audioURL);
-                
+
                 // Enable transcribe button
                 transcribeAudioBtn.disabled = false;
-                
+
                 // Set current audio source
                 currentAudioSource = 'recording';
             };
-            
+
             // Update UI
             recordBtn.disabled = false;
-            
+
         } catch (error) {
             console.error('Error accessing microphone:', error);
             alert('Error accessing your microphone. Please check permissions and try again.');
@@ -191,14 +196,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function createAudioClip(audioURL) {
         const clipContainer = document.createElement('div');
         clipContainer.className = 'clip';
-        
+
         const audio = document.createElement('audio');
         audio.controls = true;
         audio.src = audioURL;
-        
+
         const clipControls = document.createElement('div');
         clipControls.className = 'clip-controls';
-        
+
         const deleteButton = document.createElement('button');
         deleteButton.innerHTML = 'Delete';
         deleteButton.addEventListener('click', () => {
@@ -208,11 +213,11 @@ document.addEventListener('DOMContentLoaded', () => {
             audioURL = null;
             transcribeAudioBtn.disabled = true;
         });
-        
+
         clipControls.appendChild(deleteButton);
         clipContainer.appendChild(audio);
         clipContainer.appendChild(clipControls);
-        
+
         clipsContainer.innerHTML = '';
         clipsContainer.appendChild(clipContainer);
     }
@@ -221,12 +226,14 @@ document.addEventListener('DOMContentLoaded', () => {
     recordBtn.addEventListener('click', () => {
         audioChunks = [];
         mediaRecorder.start();
-        
+
         // Update UI
         recordBtn.disabled = true;
         stopBtn.disabled = false;
         recordingStatus.style.display = 'flex';
-        
+        isRecording = true;
+        speakingAnimation.classList.add('active');
+
         // Start timer
         recordingDuration = 0;
         recordingTimer.textContent = '00:00';
@@ -236,6 +243,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Stop recording
     stopBtn.addEventListener('click', () => {
         mediaRecorder.stop();
+        isRecording = false;
+        speakingAnimation.classList.remove('active');
     });
 
     // Handle file upload via drag and drop
@@ -254,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         uploadArea.style.backgroundColor = '';
         uploadArea.style.borderColor = '';
-        
+
         if (e.dataTransfer.files.length > 0) {
             handleFile(e.dataTransfer.files[0]);
         }
@@ -289,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to prepare audio for API submission
     async function prepareAudioForAPI() {
         let formData = new FormData();
-        
+
         if (currentAudioSource === 'recording') {
             formData.append('audio', audioBlob, 'recording.wav');
         } else if (currentAudioSource === 'file') {
@@ -297,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             throw new Error('No audio source available');
         }
-        
+
         return formData;
     }
 
@@ -318,46 +327,46 @@ document.addEventListener('DOMContentLoaded', () => {
         transcript.textContent = '';
         ttsPlayer.classList.remove('active');
         playTtsBtn.disabled = true;
-        
+
         try {
             const formData = await prepareAudioForAPI();
-            
+
             // Make the API call to your local Flask backend
-            const response = await fetch('http://localhost:8000/api/transcribe', {
+            const response = await fetch('http://localhost:8001/api/transcribe', {
                 method: 'POST',
                 body: formData
             });
-            
+
             if (!response.ok) {
                 throw new Error(`API error: ${response.status}`);
             }
-            
+
             const data = await response.json();
-            
+
             if (!data.success) {
                 throw new Error(data.error || 'Transcription failed');
             }
-            
+
             // Update UI with transcription
             transcript.textContent = data.text;
             copyBtn.disabled = false;
             downloadBtn.disabled = false;
             playTtsBtn.disabled = false;
-            
+
             processingStatus.style.display = 'none';
             successStatus.style.display = 'block';
-            
+
             // Hide success message after 3 seconds
             setTimeout(() => {
                 successStatus.style.display = 'none';
             }, 3000);
-            
+
         } catch (error) {
             console.error('Transcription error:', error);
             processingStatus.style.display = 'none';
             errorStatus.style.display = 'block';
             errorStatus.textContent = `Error: ${error.message}`;
-            
+
             // Hide error message after 5 seconds
             setTimeout(() => {
                 errorStatus.style.display = 'none';
@@ -368,52 +377,52 @@ document.addEventListener('DOMContentLoaded', () => {
     // Play TTS function
     async function playTTS() {
         const text = transcript.textContent;
-        
+
         if (!text) {
             alert('No transcription text to play.');
             return;
         }
-        
+
         resetStatuses();
         processingStatus.style.display = 'block';
         ttsPlayer.classList.remove('active');
-        
+
         try {
             // Make the API call to your TTS endpoint
-            const response = await fetch('http://localhost:8000/api/tts', {
+            const response = await fetch('http://localhost:8001/api/tts', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ text: text })
             });
-            
+
             if (!response.ok) {
                 throw new Error(`API error: ${response.status}`);
             }
-            
+
             // Convert the response to a blob
             const audioBlob = await response.blob();
             const audioUrl = URL.createObjectURL(audioBlob);
-            
+
             // Set the audio source and show the player
             ttsAudio.src = audioUrl;
             ttsPlayer.classList.add('active');
-            
+
             // Automatically play the audio
             ttsAudio.play().catch(e => {
                 console.error('Error auto-playing audio:', e);
                 // Auto-play may be blocked by browser policy, so we'll just display the player
             });
-            
+
             processingStatus.style.display = 'none';
-            
+
         } catch (error) {
             console.error('TTS error:', error);
             processingStatus.style.display = 'none';
             errorStatus.style.display = 'block';
             errorStatus.textContent = `TTS Error: ${error.message}`;
-            
+
             // Hide error message after 5 seconds
             setTimeout(() => {
                 errorStatus.style.display = 'none';
@@ -445,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = transcript.textContent;
         const blob = new Blob([text], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = 'transcript.txt';

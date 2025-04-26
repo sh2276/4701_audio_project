@@ -5,6 +5,11 @@ import subprocess
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import whisper
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -14,10 +19,36 @@ print("Loading Whisper tiny model...")
 model = whisper.load_model("tiny")
 print("Model loaded successfully!")
 
+# Configure Gemini API
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    print("Warning: GEMINI_API_KEY not found in environment variables")
+else:
+    genai.configure(api_key=GEMINI_API_KEY)
+    print("Gemini API configured successfully!")
+
+# Define Peter Griffin's system prompt
+PETER_SYSTEM_PROMPT = """You are Peter Griffin from Family Guy. Follow these rules for speaking:
+
+1. Use simple words and short sentences like Peter would
+2. Keep responses between 1 to 3 sentences only
+3. Use Peters catchphrases 
+4. Make random references to TV shows and movies
+5. Act confused about complicated things
+6. Mention your family like Lois Chris Meg Stewie and Brian
+7. Speak naturally like you are talking to a friend
+8. Avoid using special characters symbols or complicated punctuation
+9. Use basic punctuation only periods and question marks
+10. Write numbers as words
+11. Spell out any sound effects like ahhhh or whaaaat
+12. Use simple everyday words that are easy to pronounce
+
+Remember you are having a casual conversation and your words will be spoken out loud by a text to speech system."""
+
 # Path to your Piper model and JSON file
 # Update these paths to match your actual file locations
-PIPER_MODEL_PATH = "en_US--medium.onnx"
-PIPER_JSON_PATH = "en_US--medium.onnx.json"
+PIPER_MODEL_PATH = "../en_US--medium.onnx"
+PIPER_JSON_PATH = "../en_US--medium.onnx.json"
 
 @app.route('/api/transcribe', methods=['POST'])
 def transcribe_audio():
@@ -47,6 +78,41 @@ def transcribe_audio():
     
     except Exception as e:
         print(f"Error during transcription: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/chat', methods=['POST'])
+def chat_with_gemini():
+    try:
+        data = request.json
+        if not data or 'text' not in data:
+            return jsonify({'error': 'No text provided'}), 400
+        
+        user_text = data['text']
+        if not user_text:
+            return jsonify({'error': 'Empty text provided'}), 400
+        
+        print(f"Generating Gemini response for: {user_text[:50]}...")
+        
+        # Initialize the Gemini model with the flash version
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        
+        # Generate a response with the system prompt included
+        prompt = f"{PETER_SYSTEM_PROMPT}\n\nUser: {user_text}\n\nPeter Griffin:"
+        response = model.generate_content(prompt)
+        
+        # Extract the text from the response
+        response_text = response.text
+        
+        return jsonify({
+            'success': True,
+            'text': response_text
+        })
+    
+    except Exception as e:
+        print(f"Error during Gemini response generation: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -137,4 +203,4 @@ if __name__ == '__main__':
     if not os.path.exists(PIPER_JSON_PATH):
         print(f"Warning: Piper JSON config not found at {PIPER_JSON_PATH}")
     
-    app.run(host='0.0.0.0', port=8001, debug=True)
+    app.run(host='0.0.0.0', port=8001, debug=True) 

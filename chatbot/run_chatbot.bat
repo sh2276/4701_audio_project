@@ -1,0 +1,3 @@
+@echo off
+echo Starting AI Voice Chatbot...
+start "" "dist\AI_Voice_Chatbot.exe" 
