@@ -79,7 +79,16 @@ exe = EXE(
     # Clean up the spec file
     os.remove("chatbot.spec")
     
+    # Create a sample .env file in the dist directory
+    sample_env_path = os.path.join("dist", ".env.sample")
+    with open(sample_env_path, "w") as f:
+        f.write("# API Keys for AI Voice Chatbot\n")
+        f.write("# Rename this file to .env and add your API keys\n\n")
+        f.write("GOOGLE_API_KEY=your_google_api_key_here\n")
+        f.write("# Add any other required API keys\n")
+    
     print("Build complete! The executable is in the 'dist' directory.")
+    print("A sample .env file has been created. Users should rename it to .env and add their API keys.")
 
 if __name__ == "__main__":
     build_executable() 

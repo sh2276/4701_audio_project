@@ -9,15 +9,18 @@ A standalone chatbot that uses Whisper for speech-to-text transcription, Google'
 - **Text-to-Speech**: Uses Piper TTS to convert AI responses to speech
 - **Real-time Audio Visualization**: Visual feedback during recording
 - **Modern UI**: Clean, responsive interface with chat-like experience
+- **Executable Version**: Available as a standalone executable for easy distribution
 
 ## Prerequisites
 
-- Python 3.8+
-- Node.js and npm (for serving the frontend)
+- Python 3.8+ (for development)
+- Node.js and npm (for serving the frontend in development)
 - Piper TTS installed and available in your PATH
 - Google Gemini API key
 
 ## Setup
+
+### Development Setup
 
 1. Clone the repository:
    ```
@@ -32,14 +35,14 @@ A standalone chatbot that uses Whisper for speech-to-text transcription, Google'
 
 3. Create a `.env` file with your Gemini API key:
    ```
-   GEMINI_API_KEY=your_gemini_api_key_here
+   GOOGLE_API_KEY=your_google_api_key_here
    ```
 
 4. Make sure the Piper model files are accessible:
    - The backend is configured to look for the Piper model files in the parent directory
    - If your model files are located elsewhere, update the paths in `backend.py`
 
-## Running the Application
+### Running the Development Version
 
 1. Start the backend server:
    ```
@@ -61,6 +64,27 @@ A standalone chatbot that uses Whisper for speech-to-text transcription, Google'
    - If using Python's HTTP server: http://localhost:8080
    - If using Node's serve: http://localhost:3000
 
+### Building the Executable
+
+1. Run the build script:
+   ```
+   python build.py
+   ```
+
+2. The executable will be created in the `dist` directory.
+
+3. For Windows users, you can use the provided batch file:
+   ```
+   run_chatbot.bat
+   ```
+
+4. For other platforms, run the executable directly:
+   ```
+   ./dist/AI_Voice_Chatbot
+   ```
+
+5. **Important**: Before running the executable, rename the `.env.sample` file to `.env` and add your API keys.
+
 ## Usage
 
 1. Click the "Start Recording" button to begin speaking
@@ -71,12 +95,25 @@ A standalone chatbot that uses Whisper for speech-to-text transcription, Google'
    - Display the response in the chat
    - Convert the response to speech and play it
 
+## Environment Variables
+
+The application uses a `.env` file to store sensitive information like API keys. This file is:
+- Not tracked by Git (added to .gitignore)
+- Not included in the executable package
+- Required for the application to function properly
+
+When distributing the application:
+1. Provide a `.env.sample` file with placeholder values
+2. Instruct users to rename it to `.env` and add their own API keys
+3. Never include your actual API keys in the distributed files
+
 ## Troubleshooting
 
 - **Microphone Access**: Ensure your browser has permission to access your microphone
 - **API Key**: Verify your Gemini API key is correctly set in the `.env` file
 - **Piper TTS**: Make sure Piper is installed and the model files are accessible
 - **CORS Issues**: If you encounter CORS errors, ensure the backend is running and accessible
+- **Executable Issues**: If the executable doesn't start, check that the `.env` file is properly configured
 
 ## License
 
