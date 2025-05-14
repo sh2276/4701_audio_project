@@ -53,3 +53,7 @@ python app.py
 Then simply open `index.html` in your web browser.
 
 Note: Make sure the port in your JavaScript file matches the port in your Flask app (8000).
+
+---
+
+For the chatbot app, please take a look at `chatbot/README.md`
