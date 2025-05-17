@@ -57,3 +57,8 @@ Note: Make sure the port in your JavaScript file matches the port in your Flask 
 ---
 
 For the chatbot app, please take a look at `chatbot/README.md`
+
+---
+
+For the python notebooks used for training and experimentations, please take a look at `colab/`
+
