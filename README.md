@@ -1,4 +1,4 @@
-# Whisper Transcription App
+# Speech-to-Speech App
 
 A simple web application for transcribing audio using OpenAI's Whisper model.
 
@@ -47,7 +47,7 @@ pip install piper-tts --no-deps piper-phonemize-cross onnxruntime numpy
 
 ```bash
 # Start the backend (in the activated venv)
-python app.py
+python backend.py
 ```
 
 Then simply open `index.html` in your web browser.
