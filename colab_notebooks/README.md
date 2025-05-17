@@ -1,0 +1,1 @@
+This folder contains various files used for training/experimentation. The Piper training notebook was used to generate the loss plots shown in the report, with data taken from tensorboard visualizations during/immediately after model training. 
