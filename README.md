@@ -1,3 +1,5 @@
+This is the GitHub repository for the CS 4701 (AI Practicum) project by Matthew Baum, Sahil Hosalli, and Alkis Boukas. This README mainly pertains to the Speech-to-Speech application outlined in the report, with additional information about the chatbot and training/experimentation notebooks provided at the bottom. 
+
 # Speech-to-Speech App
 
 A simple web application for transcribing audio using OpenAI's Whisper model.
