@@ -35,7 +35,7 @@ A standalone chatbot that uses Whisper for speech-to-text transcription, Google'
 
 3. Create a `.env` file with your Gemini API key:
    ```
-   GOOGLE_API_KEY=your_google_api_key_here
+   GEMINI_API_KEY=your_google_api_key_here
    ```
 
 4. Make sure the Piper model files are accessible:
