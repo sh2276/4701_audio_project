@@ -60,5 +60,5 @@ For the chatbot app, please take a look at `chatbot/README.md`
 
 ---
 
-For the python notebooks used for training and experimentations, please take a look at `colab_notebooks/`
+For the Python notebooks used for training and experimentation, please take a look at `colab_notebooks/`
 
